@@ -2,9 +2,9 @@ package pkg
 
 import "strings"
 
-// CheckString 判断文本中是否含有敏感词
-func (d *Dict) CheckString(str string) (begin int, end int, err error) {
-	runes := []rune(strings.ToLower(str))
+// CheckRunes 判断文本中是否含有敏感词
+// 返回值中，begin和end为敏感词出现的起始和结束位置。通过 runes[begin:end] 即可获取到实际的敏感词
+func (d *Dict) CheckRunes(runes []rune) (begin int, end int, err error) {
 	for i, r := range runes {
 		begin = i
 		mapIndex := d.rune2Index(r)
@@ -29,6 +29,12 @@ func (d *Dict) CheckString(str string) (begin int, end int, err error) {
 	end = -1
 	err = nil
 	return
+}
+
+// CheckString 判断文本中是否含有敏感词
+func (d *Dict) CheckString(str string) (begin int, end int, err error) {
+	runes := []rune(strings.ToLower(str))
+	return d.CheckRunes(runes)
 }
 
 func (d *Dict) nodeComp(str []rune, entryID int) (int, error) {
