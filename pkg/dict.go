@@ -11,15 +11,35 @@ type blockInfo struct {
 }
 
 func NewDict(data []byte) (*Dict, error) {
-	dict := Dict{}
+	dict := Dict{
+		charaReplace: make(map[uint16]uint16),
+	}
 
-	const offsetStart = 0x8724
+	const offsetStart = 0x8124
+	offset := offsetStart
+
+	// 字符映射表
+	for i := 0; i < 256; i++ {
+		val := binary.LittleEndian.Uint16(data[offset : offset+2])
+		dict.charaReplace[uint16(i)+0x0000] = val
+		offset += 2
+	}
+	for i := 0; i < 256; i++ {
+		val := binary.LittleEndian.Uint16(data[offset : offset+2])
+		dict.charaReplace[uint16(i)+0xFF00] = val
+		offset += 2
+	}
+	for i := 0; i < 256; i++ {
+		val := binary.LittleEndian.Uint16(data[offset : offset+2])
+		dict.charaReplace[uint16(i)+0x3000] = val
+		offset += 2
+	}
+
 	const mapStart = 0x8750
 	const mapSize = 0x200
 
-	// 读取偏移量
+	// 读取偏移量, offset = 0x8724
 	blocks := make([]blockInfo, 5)
-	offset := offsetStart
 	for i := 0; i < len(blocks); i++ {
 		val := binary.LittleEndian.Uint32(data[offset : offset+4])
 		blocks[i].offset = val + mapStart + mapSize
@@ -30,11 +50,13 @@ func NewDict(data []byte) (*Dict, error) {
 		offset += 4
 	}
 
-	// 字符映射表
-	dict.charaMap = make([]uint16, 256)
+	offset += 4
+
+	// 区块映射表
+	dict.charaBlock = make([]uint16, 256)
 	for i := 0; i < mapSize/2; i++ {
-		ofs := mapStart + i*2
-		dict.charaMap[i] = binary.LittleEndian.Uint16(data[ofs : ofs+2])
+		dict.charaBlock[i] = binary.LittleEndian.Uint16(data[offset : offset+2])
+		offset += 2
 	}
 
 	// 首个节点表
@@ -78,17 +100,27 @@ func NewDict(data []byte) (*Dict, error) {
 	return &dict, nil
 }
 
-// mapRune 对输入字符做映射
+// runeMapping 映射字符表
+func (d *Dict) runeMapping(r rune) rune {
+	ret, ok := d.charaReplace[uint16(r)]
+	if ok {
+		return rune(ret)
+	}
+	return r
+}
+
+// rune2Index 将rune转换为index
 func (d *Dict) rune2Index(r rune) uint32 {
-	val := int(r)
+	val := uint16(d.runeMapping(r))
+
 	higher := val >> 8
 	lower := val & 0xFF
 
-	if higher >= len(d.charaMap) {
+	if int(higher) >= len(d.charaBlock) {
 		return 0
 	}
 
-	higher = int(d.charaMap[higher])
+	higher = d.charaBlock[higher]
 	if higher == 0 {
 		return 0
 	}
@@ -115,8 +147,8 @@ func (d *Dict) index2Rune(lut map[uint16]uint16, index uint32) rune {
 // generateIndexRuneLut 生成反查表
 func (d *Dict) generateIndexRuneLut() map[uint16]uint16 {
 	val := make(map[uint16]uint16)
-	for i := 0; i < len(d.charaMap); i++ {
-		val[d.charaMap[i]] = uint16(i)
+	for i := 0; i < len(d.charaBlock); i++ {
+		val[d.charaBlock[i]] = uint16(i)
 	}
 	return val
 }

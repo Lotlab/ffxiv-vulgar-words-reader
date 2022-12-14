@@ -8,10 +8,11 @@ type entryItem struct {
 }
 
 type Dict struct {
-	charaMap  []uint16
-	beginNode []uint16
-	innerNode []uint16
-	chara     []rune
-	word      []rune
-	entries   []entryItem
+	charaReplace map[uint16]uint16
+	charaBlock   []uint16
+	beginNode    []uint16
+	innerNode    []uint16
+	chara        []rune
+	word         []rune
+	entries      []entryItem
 }

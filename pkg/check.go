@@ -1,7 +1,5 @@
 package pkg
 
-import "strings"
-
 // CheckRunes 判断文本中是否含有敏感词
 // 返回值中，begin和end为敏感词出现的起始和结束位置。通过 runes[begin:end] 即可获取到实际的敏感词
 func (d *Dict) CheckRunes(runes []rune) (begin int, end int, err error) {
@@ -33,7 +31,7 @@ func (d *Dict) CheckRunes(runes []rune) (begin int, end int, err error) {
 
 // CheckString 判断文本中是否含有敏感词
 func (d *Dict) CheckString(str string) (begin int, end int, err error) {
-	runes := []rune(strings.ToLower(str))
+	runes := []rune(str)
 	return d.CheckRunes(runes)
 }
 
@@ -53,7 +51,7 @@ func (d *Dict) nodeComp(str []rune, entryID int) (int, error) {
 			}
 			match := true
 			for i := 0; i < len(current); i++ {
-				if current[i] != str[i] {
+				if current[i] != d.runeMapping(str[i]) {
 					match = false
 					break
 				}
