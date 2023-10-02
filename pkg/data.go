@@ -9,6 +9,7 @@ type entryItem struct {
 
 type Dict struct {
 	charaReplace map[uint16]uint16
+	charaSkip    map[uint16]bool
 	charaBlock   []uint16
 	beginNode    []uint16
 	innerNode    []uint16

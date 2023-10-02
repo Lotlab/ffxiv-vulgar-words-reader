@@ -8,15 +8,47 @@
 
 未知用途
 
+0x0000-0x0003: 未知，0x00
+0x0004-0x0007: 未知，0x3F
+0x0008-0x000A: 未知，0x01
+0x000B-0x200A: 字符跳过表
+0x200B-0x800A: 未知，全0
+0x800B-0x800F: 未知，0x01
+0x8010-0x803A: 未知，全0
+0x803B-0x803F: 未知，0x03
+0x8040-0x8108: 未知，全0
+0x8109-0x810A: 未知，0x20000000
+0x810B-0x810F: 未知，0x03
+0x8110-0x8113: 未知，0x8724，疑似偏移量起始位置
+0x8114-0x8123: 未知，全0
+
+### 字符跳过表
+
+0x000B-0x200A
+
+Bitmap存储了所有需要跳过的字符。
+
 ## 字典表
 
 0x8124-0x8723
 
-字符映射，包括三个区域:
+字符映射，用于处理全角字符到半角字符，以及大写到小写字符的映射。
+
+包括三个区域:
 
 0x8124-0x8323: 0x0000-0x00FF 的字符映射表
 0x8324-0x8523: 0xFF00-0xFFFF 的字符映射表
 0x8524-0x8723: 0x0300-0x03FF 的字符映射表
+
+示例结构如下：
+
+```c
+struct {
+    uint16_t charaMap00[0x10000]; // 0x0000-0x00FF
+    uint16_t charaMapFF[0x10000]; // 0xFF00-0xFFFF
+    uint16_t charaMap03[0x10000]; // 0x0300-0x03FF
+}
+```
 
 ## 偏移量表
 
@@ -31,6 +63,23 @@
 
 这里的偏移量是相对于下面的字符映射表的末尾而言的，即实际偏移量要在上表的基础上加上 0x8950
 
+示例结构如下：
+
+```c
+struct {
+    uint32_t begNodeTableOffset;
+    uint32_t midNodeTableOffset;
+    uint32_t singleCharaTableOffset;
+    uint32_t multiCharaTableOffset;
+    uint32_t treeTableOffset;
+    uint32_t begNodeTableLength;
+    uint32_t midNodeTableLength;
+    uint32_t singleCharaTableLength;
+    uint32_t multiCharaTableLength;
+    uint32_t treeTableLength;
+}
+```
+
 ## 字符映射表
 
 0x8750 - 0x894F
@@ -40,7 +89,8 @@
 对于任意一个字符，假设其 Unicode 为 0x3456，则其在起始节点索引表中的索引值为：
 
 ``` C
-index = (map[0x34] << 8) + 0x56;
+uint16_t map[0x100]; // offset 0x8750
+uint16_t index = (map[0x34] << 8) + 0x56;
 ```
 
 ## 起始节点索引表

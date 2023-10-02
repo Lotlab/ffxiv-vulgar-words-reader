@@ -6,7 +6,7 @@ func (d *Dict) CheckRunes(runes []rune) (begin int, end int, err error) {
 	for i, r := range runes {
 		begin = i
 		mapIndex := d.rune2Index(r)
-		if mapIndex == 0 || int(mapIndex) >= len(d.beginNode) {
+		if mapIndex == 0 || d.isSkip(r) || int(mapIndex) >= len(d.beginNode) {
 			continue
 		}
 
@@ -44,41 +44,45 @@ func (d *Dict) nodeComp(str []rune, entryID int) (int, error) {
 			return -1, err
 		}
 
-		// 空的说明当前完全匹配
-		if len(current) > 0 {
-			if len(current) > len(str) {
-				continue
+		// 判断节点与目标文本是否完全匹配
+		if len(current) > len(str) {
+			continue
+		}
+		match := true
+		strOffset := 0
+		for i := 0; i < len(current); i++ {
+			for d.isSkip(str[strOffset]) {
+				strOffset++
 			}
-			match := true
-			for i := 0; i < len(current); i++ {
-				if current[i] != d.runeMapping(str[i]) {
-					match = false
-					break
-				}
+
+			if current[i] != d.runeMapping(str[strOffset]) {
+				match = false
+				break
 			}
-			if !match {
-				continue
-			}
+			strOffset++
+		}
+		if !match {
+			continue
 		}
 
 		// 完全匹配，没有子节点
 		if node.child == 0 {
-			return len(current), nil
+			return strOffset, nil
 		}
 
 		val := d.innerNode[int(node.child)+i]
 		if val == 0 {
 			// 最后一个节点，完全匹配
-			return len(current), nil
+			return strOffset, nil
 		}
 
 		// 匹配子节点
-		result, err := d.nodeComp(str[len(current):], int(val))
+		result, err := d.nodeComp(str[strOffset:], int(val))
 		if err != nil {
 			return -1, err
 		}
 		if result >= 0 {
-			return len(current) + result, nil
+			return strOffset + result, nil
 		}
 	}
 	return -1, nil

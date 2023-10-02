@@ -13,6 +13,16 @@ type blockInfo struct {
 func NewDict(data []byte) (*Dict, error) {
 	dict := Dict{
 		charaReplace: make(map[uint16]uint16),
+		charaSkip:    make(map[uint16]bool),
+	}
+
+	for i := 0; i < 0x10000/8; i++ {
+		ch := data[12+i]
+		for j := 0; j < 8; j++ {
+			if ch&(1<<j) > 0 {
+				dict.charaSkip[uint16(i*8+j)] = true
+			}
+		}
 	}
 
 	const offsetStart = 0x8124
@@ -183,4 +193,10 @@ func (d *Dict) getStringRunes(entryID int, sibilID int) ([]rune, error) {
 		end++
 	}
 	return d.word[begin:end], nil
+}
+
+// isSkip 判断是否要跳过指定字符
+func (d *Dict) isSkip(r rune) bool {
+	_, ok := d.charaSkip[uint16(r)]
+	return ok
 }
